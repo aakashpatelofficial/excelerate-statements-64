@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Eye, EyeOff, Mail, Lock, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const Register = () => {
+  const { user, signUp } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,6 +24,11 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +45,19 @@ const Register = () => {
 
     setIsLoading(true);
 
-    // Simulate registration process
-    setTimeout(() => {
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.name);
+      
+      if (error) {
+        toast.error(error.message || "Registration failed");
+      } else {
+        toast.success("Account created successfully! Please check your email to verify your account.");
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    } finally {
       setIsLoading(false);
-      toast.success("Account created successfully!");
-      // In real app, redirect to dashboard or login
-    }, 1500);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

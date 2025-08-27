@@ -3,24 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Upload, Download, FileText, CheckCircle, X, Loader2 } from "lucide-react";
+import { Upload, Download, FileText, CheckCircle, X, Loader2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ConversionState {
   file: File | null;
   progress: number;
-  stage: 'idle' | 'uploading' | 'processing' | 'complete' | 'error';
+  stage: 'idle' | 'uploading' | 'inspecting' | 'processing' | 'complete' | 'error';
   downloadUrl: string | null;
   error: string | null;
+  conversionId: string | null;
+  transactions: any[] | null;
 }
 
 const SimplePdfConverter = () => {
+  const { user, session } = useAuth();
   const [state, setState] = useState<ConversionState>({
     file: null,
     progress: 0,
     stage: 'idle',
     downloadUrl: null,
-    error: null
+    error: null,
+    conversionId: null,
+    transactions: null
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +39,9 @@ const SimplePdfConverter = () => {
       progress: 0,
       stage: 'idle',
       downloadUrl: null,
-      error: null
+      error: null,
+      conversionId: null,
+      transactions: null
     });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -53,43 +62,86 @@ const SimplePdfConverter = () => {
     setState(prev => ({ ...prev, file, stage: 'uploading', progress: 0 }));
 
     try {
-      // Simulate upload progress
-      for (let i = 0; i <= 30; i += 5) {
-        setState(prev => ({ ...prev, progress: i }));
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      // Upload PDF to backend
+      const formData = new FormData();
+      formData.append('pdf', file);
 
-      setState(prev => ({ ...prev, stage: 'processing', progress: 30 }));
+      const { data: uploadResult, error: uploadError } = await supabase.functions
+        .invoke('upload-pdf', {
+          body: formData,
+          headers: session ? {
+            Authorization: `Bearer ${session.access_token}`
+          } : {}
+        });
 
-      // Simulate processing with realistic progress
-      for (let i = 30; i <= 90; i += 10) {
-        setState(prev => ({ ...prev, progress: i }));
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
+      if (uploadError) throw uploadError;
+      if (!uploadResult.success) throw new Error(uploadResult.error);
 
-      // Create a mock Excel file for download
-      const mockExcelData = createMockExcelFile(file.name);
-      const blob = new Blob([mockExcelData], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      const downloadUrl = URL.createObjectURL(blob);
+      setState(prev => ({ 
+        ...prev, 
+        stage: 'inspecting', 
+        progress: 30,
+        conversionId: uploadResult.conversionId 
+      }));
+
+      toast.success('PDF uploaded successfully! Click "Start Processing" to continue.');
+
+    } catch (error: any) {
+      setState(prev => ({ 
+        ...prev, 
+        stage: 'error', 
+        error: error.message || 'Failed to upload PDF. Please try again.' 
+      }));
+      toast.error(error.message || 'Upload failed. Please try again.');
+    }
+  };
+
+  const startProcessing = async () => {
+    if (!state.conversionId) return;
+
+    setState(prev => ({ ...prev, stage: 'processing', progress: 40 }));
+
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setState(prev => {
+          if (prev.progress < 90) {
+            return { ...prev, progress: prev.progress + 10 };
+          }
+          return prev;
+        });
+      }, 500);
+
+      const { data: result, error } = await supabase.functions
+        .invoke('process-pdf', {
+          body: { conversionId: state.conversionId },
+          headers: session ? {
+            Authorization: `Bearer ${session.access_token}`
+          } : {}
+        });
+
+      clearInterval(progressInterval);
+
+      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
       setState(prev => ({ 
         ...prev, 
         stage: 'complete', 
         progress: 100,
-        downloadUrl 
+        downloadUrl: result.downloadUrl,
+        transactions: result.transactions
       }));
 
       toast.success('PDF converted to Excel successfully!');
 
-    } catch (error) {
+    } catch (error: any) {
       setState(prev => ({ 
         ...prev, 
         stage: 'error', 
-        error: 'Failed to convert PDF. Please try again.' 
+        error: error.message || 'Failed to process PDF. Please try again.' 
       }));
-      toast.error('Conversion failed. Please try again.');
+      toast.error(error.message || 'Processing failed. Please try again.');
     }
   };
 
@@ -157,7 +209,7 @@ const SimplePdfConverter = () => {
     if (state.downloadUrl) {
       const a = document.createElement('a');
       a.href = state.downloadUrl;
-      a.download = `${state.file?.name?.replace('.pdf', '')}_converted.xlsx` || 'bank_statement.xlsx';
+      a.download = `${state.file?.name?.replace('.pdf', '')}_converted.csv` || 'bank_statement.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -249,6 +301,7 @@ const SimplePdfConverter = () => {
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">
                 {state.stage === 'uploading' && 'Uploading...'}
+                {state.stage === 'inspecting' && 'Ready for Processing'}
                 {state.stage === 'processing' && 'Converting to Excel...'}
                 {state.stage === 'complete' && 'Conversion Complete!'}
                 {state.stage === 'error' && 'Error'}
@@ -262,12 +315,22 @@ const SimplePdfConverter = () => {
 
           {/* Status */}
           <div className="flex items-center justify-center space-x-2 py-4">
-            {(state.stage === 'uploading' || state.stage === 'processing') && (
+            {state.stage === 'uploading' && (
               <>
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm font-medium">
-                  {state.stage === 'uploading' ? 'Uploading PDF...' : 'Processing with AI...'}
-                </span>
+                <span className="text-sm font-medium">Uploading PDF...</span>
+              </>
+            )}
+            {state.stage === 'inspecting' && (
+              <>
+                <Eye className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Ready for processing</span>
+              </>
+            )}
+            {state.stage === 'processing' && (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm font-medium">Processing with AI...</span>
               </>
             )}
             {state.stage === 'complete' && (
@@ -286,25 +349,70 @@ const SimplePdfConverter = () => {
           </div>
 
           {/* Actions */}
-          {state.stage === 'complete' && (
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          {state.stage === 'inspecting' && (
+            <div className="flex flex-col gap-3 pt-4">
               <Button 
                 variant="glow" 
                 size="lg" 
-                onClick={handleDownload}
-                className="flex-1"
+                onClick={startProcessing}
+                className="w-full"
               >
-                <Download className="mr-2 h-5 w-5" />
-                Download Excel File
+                <Eye className="mr-2 h-5 w-5" />
+                Start Processing
               </Button>
               <Button 
                 variant="outline" 
                 size="lg" 
                 onClick={resetState}
-                className="flex-1 sm:flex-none"
+                className="w-full"
               >
-                Convert Another
+                Upload Different File
               </Button>
+            </div>
+          )}
+
+          {state.stage === 'complete' && (
+            <div className="flex flex-col gap-4 pt-4">
+              {/* Show transaction preview */}
+              {state.transactions && state.transactions.length > 0 && (
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Extracted Transactions ({state.transactions.length} found):</h4>
+                  <div className="space-y-1 text-sm">
+                    {state.transactions.slice(0, 3).map((tx, idx) => (
+                      <div key={idx} className="flex justify-between text-xs">
+                        <span>{tx.date}</span>
+                        <span className="truncate max-w-[150px] mx-2">{tx.description}</span>
+                        <span>{tx.debit || tx.credit}</span>
+                      </div>
+                    ))}
+                    {state.transactions.length > 3 && (
+                      <div className="text-center text-muted-foreground text-xs">
+                        ...and {state.transactions.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  variant="glow" 
+                  size="lg" 
+                  onClick={handleDownload}
+                  className="flex-1"
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Download Excel File
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={resetState}
+                  className="flex-1 sm:flex-none"
+                >
+                  Convert Another
+                </Button>
+              </div>
             </div>
           )}
 
