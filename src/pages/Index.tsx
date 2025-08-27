@@ -1,9 +1,7 @@
 
-import { useState, useRef } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import UploadProgress from "@/components/UploadProgress";
-import PdfConverter from "@/components/PdfConverter";
+import SimplePdfConverter from "@/components/SimplePdfConverter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -11,55 +9,11 @@ import {
   Shield, 
   Zap, 
   FileSpreadsheet,
-  CheckCircle,
   ArrowRight,
   FileText
 } from "lucide-react";
-import { toast } from "sonner";
 
 const Index = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-      toast.error('Please select a PDF file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
-    }
-
-    setSelectedFile(file);
-    setIsUploading(true);
-    toast.success('PDF uploaded successfully!');
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleDownload = () => {
-    // Simulate download
-    toast.success('Excel file downloaded successfully!');
-    handleReset();
-  };
-
-  const handleReset = () => {
-    setSelectedFile(null);
-    setIsUploading(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   const features = [
     {
@@ -92,27 +46,18 @@ const Index = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="text-center max-w-4xl mx-auto">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
-                Convert Bank Statements to{" "}
-                <span className="gradient-text">Excel</span>{" "}
-                Instantly
+                The world's most trusted{" "}
+                <span className="gradient-text">bank statement converter</span>
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Transform your PDF bank statements into structured Excel files with perfect formatting. 
-                Fast, secure, and incredibly accurate.
+                Easily convert PDF bank statements from 1000s of banks world wide into clean Excel (XLS) format.
               </p>
 
               {/* PDF Converter Component */}
               <div className="max-w-4xl mx-auto mb-12">
-                <PdfConverter />
+                <SimplePdfConverter />
               </div>
 
-              {isUploading && (
-                <UploadProgress
-                  file={selectedFile}
-                  onDownload={handleDownload}
-                  onReset={handleReset}
-                />
-              )}
             </div>
           </div>
         </section>
@@ -200,23 +145,82 @@ const Index = () => {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-primary/5">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Get Started?
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of users who trust us with their bank statement conversions
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="glow" size="lg">
-                <Upload className="mr-2 h-5 w-5" />
-                Start Converting Now
-              </Button>
-              <Button variant="outline" size="lg">
-                View Pricing Plans
-              </Button>
+        {/* Pricing Section */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Simple, Transparent Pricing
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                Choose the plan that works for you
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {/* Anonymous */}
+              <Card className="card-gradient text-center relative">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-2">Anonymous</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Anonymous conversions with no need to sign up
+                  </p>
+                  <div className="text-3xl font-bold mb-4">Free</div>
+                  <ul className="space-y-2 text-sm mb-6">
+                    <li>✓ 1 page every 24 hours</li>
+                    <li>✓ No registration required</li>
+                    <li>✓ Secure processing</li>
+                  </ul>
+                  <Button variant="outline" className="w-full">
+                    Start Converting
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Registered */}
+              <Card className="card-gradient text-center relative border-primary border-2">
+                <CardContent className="p-8">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
+                      Most Popular
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">Registered</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Registration is free
+                  </p>
+                  <div className="text-3xl font-bold mb-4">Free</div>
+                  <ul className="space-y-2 text-sm mb-6">
+                    <li>✓ 5 pages every 24 hours</li>
+                    <li>✓ Free registration</li>
+                    <li>✓ Priority processing</li>
+                    <li>✓ Conversion history</li>
+                  </ul>
+                  <Button variant="glow" className="w-full">
+                    Register Now
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Subscribe */}
+              <Card className="card-gradient text-center relative">
+                <CardContent className="p-8">
+                  <h3 className="text-xl font-bold mb-2">Subscribe</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Subscribe to convert more documents
+                  </p>
+                  <div className="text-3xl font-bold mb-4">$9.99<span className="text-sm text-muted-foreground">/mo</span></div>
+                  <ul className="space-y-2 text-sm mb-6">
+                    <li>✓ Unlimited conversions</li>
+                    <li>✓ Premium support</li>
+                    <li>✓ Bulk processing</li>
+                    <li>✓ API access</li>
+                  </ul>
+                  <Button variant="hero" className="w-full">
+                    Subscribe
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
