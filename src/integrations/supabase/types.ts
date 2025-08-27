@@ -14,7 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversions: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          file_size: number
+          id: string
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          result_url: string | null
+          status: string
+          transactions_count: number | null
+          updated_at: string
+          upload_url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          file_size: number
+          id?: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          result_url?: string | null
+          status?: string
+          transactions_count?: number | null
+          updated_at?: string
+          upload_url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          file_size?: number
+          id?: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          result_url?: string | null
+          status?: string
+          transactions_count?: number | null
+          updated_at?: string
+          upload_url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_limits: {
+        Row: {
+          conversions_used: number
+          created_at: string
+          date: string
+          id: string
+          max_daily_conversions: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          conversions_used?: number
+          created_at?: string
+          date?: string
+          id?: string
+          max_daily_conversions?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          conversions_used?: number
+          created_at?: string
+          date?: string
+          id?: string
+          max_daily_conversions?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
