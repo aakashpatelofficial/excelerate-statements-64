@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { X, ZoomIn, ZoomOut, ChevronUp, ChevronDown, FileText, Download } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronUp, ChevronDown, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface InspectDialogProps {
@@ -31,7 +30,6 @@ const InspectDialog = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [pageRange, setPageRange] = useState("1");
-  const [rawData, setRawData] = useState("");
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.25, 3.0));
@@ -73,15 +71,10 @@ const InspectDialog = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Inspect: {fileName}
-            </DialogTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Inspect: {fileName}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
@@ -173,29 +166,6 @@ const InspectDialog = ({
                 </CardContent>
               </Card>
 
-              {/* Raw Data Editor */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Raw Data Editor</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rawData">Edit Extracted Data</Label>
-                    <Textarea
-                      id="rawData"
-                      placeholder="Raw transaction data will appear here for editing..."
-                      value={rawData}
-                      onChange={(e) => setRawData(e.target.value)}
-                      rows={8}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  
-                  <Button variant="outline" className="w-full">
-                    Apply Changes
-                  </Button>
-                </CardContent>
-              </Card>
 
               {/* Export Options */}
               <Card>
