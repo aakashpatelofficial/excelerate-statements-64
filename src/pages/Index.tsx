@@ -1,7 +1,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SimplePdfConverter from "@/components/SimplePdfConverter";
+import BankStatementConverter from "@/components/BankStatementConverter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -55,7 +55,7 @@ const Index = () => {
 
               {/* PDF Converter Component */}
               <div className="max-w-4xl mx-auto mb-12">
-                <SimplePdfConverter />
+                <BankStatementConverter />
               </div>
 
             </div>
