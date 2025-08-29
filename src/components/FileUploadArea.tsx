@@ -36,64 +36,37 @@ const FileUploadArea = ({ onFileUploaded, disabled }: FileUploadAreaProps) => {
     try {
       console.log('📤 Uploading:', file.name);
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('You must be logged in to upload files');
+      // Use Edge Function to handle upload (works with or without auth)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const form = new FormData();
+      form.append('file', file, file.name);
+
+      const res = await fetch('https://bqhiqtpcydoofiqrzvnu.supabase.co/functions/v1/upload-pdf', {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: form
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.error || 'Upload failed. Please try again.');
       }
 
-      // Step 1: Create conversion record first
-      const { data: conversion, error: insertError } = await supabase
-        .from('conversions')
-        .insert({
-          file_name: file.name,
-          file_size: file.size,
-          status: 'pending',
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(`Database error: ${insertError.message}`);
+      const conversionId = result.conversionId || result.id;
+      if (!conversionId) {
+        throw new Error('Upload succeeded but no conversion ID was returned.');
       }
 
-      console.log('✅ Created conversion record:', conversion.id);
-
-      // Step 2: Upload file to storage
-      const filePath = `${conversion.id}/${file.name}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('bank-statements-uploaded')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        throw new Error(`Upload error: ${uploadError.message}`);
-      }
-
-      console.log('✅ File uploaded to:', uploadData.path);
-
-      // Step 3: Update conversion record with file path
-      const { error: updateError } = await supabase
-        .from('conversions')
-        .update({
-          upload_url: uploadData.path,
-          status: 'uploaded'
-        })
-        .eq('id', conversion.id);
-
-      if (updateError) {
-        throw new Error(`Update error: ${updateError.message}`);
-      }
-
-      onFileUploaded(file, conversion.id);
+      onFileUploaded(file, conversionId);
       toast.success('File uploaded successfully!');
       console.log('✅ Upload completed for:', file.name);
 
-    } catch (error: any) {
+    }
+
+    catch (error: any) {
       console.error('❌ Upload failed for', file.name, ':', error.message);
       toast.error(error.message || 'Upload failed. Please try again.');
     } finally {
