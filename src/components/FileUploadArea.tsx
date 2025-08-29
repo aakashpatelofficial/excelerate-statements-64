@@ -40,7 +40,7 @@ const FileUploadArea = ({ onFileUploaded, disabled }: FileUploadAreaProps) => {
       const { data: { session } } = await supabase.auth.getSession();
 
       const form = new FormData();
-      form.append('file', file, file.name);
+      form.append('pdf', file, file.name);
 
       const res = await fetch('https://bqhiqtpcydoofiqrzvnu.supabase.co/functions/v1/upload-pdf', {
         method: 'POST',
