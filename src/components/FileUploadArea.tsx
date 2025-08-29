@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileUploadAreaProps {
   onFileUploaded: (file: File, fileId: string) => void;
@@ -33,11 +34,60 @@ const FileUploadArea = ({ onFileUploaded, disabled }: FileUploadAreaProps) => {
 
     setUploading(true);
     try {
-      // Create a unique file ID for tracking
-      const fileId = `${Date.now()}-${file.name}`;
-      onFileUploaded(file, fileId);
+      console.log('📤 Uploading:', file.name);
+
+      // Step 1: Create conversion record first
+      const { data: conversion, error: insertError } = await supabase
+        .from('conversions')
+        .insert({
+          file_name: file.name,
+          file_size: file.size,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        throw new Error(`Database error: ${insertError.message}`);
+      }
+
+      console.log('✅ Created conversion record:', conversion.id);
+
+      // Step 2: Upload file to storage
+      const filePath = `${conversion.id}/${file.name}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('bank-statements-uploaded')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload error: ${uploadError.message}`);
+      }
+
+      console.log('✅ File uploaded to:', uploadData.path);
+
+      // Step 3: Update conversion record with file path
+      const { error: updateError } = await supabase
+        .from('conversions')
+        .update({
+          upload_url: uploadData.path,
+          status: 'uploaded'
+        })
+        .eq('id', conversion.id);
+
+      if (updateError) {
+        throw new Error(`Update error: ${updateError.message}`);
+      }
+
+      onFileUploaded(file, conversion.id);
       toast.success('File uploaded successfully!');
+      console.log('✅ Upload completed for:', file.name);
+
     } catch (error: any) {
+      console.error('❌ Upload failed for', file.name, ':', error.message);
       toast.error(error.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
