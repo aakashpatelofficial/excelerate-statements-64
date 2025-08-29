@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Get user from request (optional for anonymous usage)
@@ -85,6 +85,29 @@ serve(async (req) => {
 
     if (conversionError) throw conversionError;
 
+    // Upload file to storage
+    const filePath = `${conversion.id}/${pdfFile.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('bank-statements-uploaded')
+      .upload(filePath, pdfFile, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Update conversion record with file path and status
+    const { error: updateError } = await supabase
+      .from('conversions')
+      .update({
+        upload_url: uploadData.path,
+        status: 'uploaded'
+      })
+      .eq('id', conversion.id);
+
+    if (updateError) throw updateError;
+
     // Update usage
     const { error: usageError } = await supabase
       .from('usage_limits')
@@ -102,6 +125,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         conversionId: conversion.id,
+        uploadPath: uploadData.path,
         message: 'PDF uploaded successfully. Processing will begin shortly.'
       }),
       {
