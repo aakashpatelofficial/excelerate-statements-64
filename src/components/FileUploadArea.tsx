@@ -36,13 +36,20 @@ const FileUploadArea = ({ onFileUploaded, disabled }: FileUploadAreaProps) => {
     try {
       console.log('📤 Uploading:', file.name);
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('You must be logged in to upload files');
+      }
+
       // Step 1: Create conversion record first
       const { data: conversion, error: insertError } = await supabase
         .from('conversions')
         .insert({
           file_name: file.name,
           file_size: file.size,
-          status: 'pending'
+          status: 'pending',
+          user_id: user.id
         })
         .select()
         .single();
